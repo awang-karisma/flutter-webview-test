@@ -1,5 +1,5 @@
 name: webview_test
-description: "A new Flutter project."
+description: "WebView-to-Flutter bridge demo app"
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,6 +9,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # WebView for Android/Windows
+  webview_flutter: ^4.10.0
+  webview_flutter_android: ^4.2.0
+  
+  # Permissions
+  permission_handler: ^11.3.1
+  
+  # Device features
+  geolocator: ^13.0.2
+  device_info_plus: ^11.3.3
+  connectivity_plus: ^6.1.4
+  camera: ^0.11.1+1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -17,3 +31,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/web/
