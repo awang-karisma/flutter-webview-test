@@ -24,7 +24,7 @@ class BridgeService {
   }
 
   /// Handle incoming messages from JavaScript.
-  /// Returns a Future<String?> with the result from the Flutter screen.
+  /// Returns a Future with the result from the Flutter screen.
   Future<String?> handleMessage(String action) async {
     if (_context == null) {
       return jsonEncode({'error': 'Context not available'});
