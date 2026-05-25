@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:wv_user_agent/wv_user_agent.dart';
 
 /// Singleton service that acts as a message hub between JavaScript (WebView) and Flutter.
 ///
@@ -39,12 +40,26 @@ class BridgeService {
         await _controller?.clearCache();
         await _controller?.loadFlutterAsset('assets/web/index.html');
         break;
+      case 'get_user_agent':
+        String userAgent = await WvUserAgent.userAgent;
+        final escapedResult = _escapeJsonForJs(userAgent);
+        await _controller!.runJavaScript('receiveFromFlutter($escapedResult)');
+        break;
+      case 'gesit_solution':
+        // Use pushReplacement to avoid having two WebViewControllers alive
+        // simultaneously on the navigation stack. Each WebViewController registers
+        // singleton Pigeon message handlers. When a second WebView replaces the
+        // first's handler, stale messages from the native side cause:
+        //   "Null check operator used on a null value" at args[0]!
+        // Replacing the route ensures HomeScreenWebView is disposed (clearing
+        // its Pigeon handlers) before GesitSolutionScreen registers its own.
+        result = await _navigateAndReplace('/$action');
+        break;
       case 'gps':
       case 'camera':
       case 'camera_qr':
       case 'device_id':
       case 'network_status':
-      case 'gesit_solution':
       case 'chat':
       case 'map_destination':
         result = await _navigateAndWait('/$action');
@@ -72,7 +87,27 @@ class BridgeService {
     );
     
     // Cast the result to String?
-    return result as String?;
+    return jsonEncode(result) as String?;
+  }
+
+  /// Navigate to a route by replacing the current route and wait for the result.
+  /// This is used for routes that create their own WebViewController (like
+  /// GesitSolutionScreen) to avoid having two WebViewControllers alive
+  /// simultaneously, which causes Pigeon channel handler conflicts.
+  Future<String?> _navigateAndReplace(String route) async {
+    if (_context == null) return null;
+
+    // Clear the controller reference — the current WebView is being replaced
+    // and its controller will be disposed. The new screen manages its own
+    // WebViewController internally.
+    _controller = null;
+
+    final result = await Navigator.pushReplacementNamed(
+      _context!,
+      route,
+    );
+
+    return jsonEncode(result) as String?;
   }
 
   /// Escape a JSON string for use in JavaScript.

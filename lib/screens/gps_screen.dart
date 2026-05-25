@@ -16,6 +16,7 @@ class _GpsScreenState extends State<GpsScreen> {
   bool _hasPermission = false;
   Position? _position;
   String? _errorMessage;
+  bool _allowPop = false;
 
   @override
   void initState() {
@@ -66,13 +67,22 @@ class _GpsScreenState extends State<GpsScreen> {
   }
 
   Future<void> _getLocation() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _position = null;
+    });
+
     try {
-      final position = await Geolocator.getCurrentPosition(
+      // Use getPositionStream().first to force a fresh GPS fix
+      // instead of returning a cached location.
+      final position = await Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
+          distanceFilter: 0,
         ),
-      );
+      ).first.timeout(const Duration(seconds: 15));
+
       if (mounted) {
         setState(() {
           _position = position;
@@ -101,18 +111,38 @@ class _GpsScreenState extends State<GpsScreen> {
       'timestamp': _position!.timestamp.toIso8601String(),
     };
 
+    _allowPop = true;
+    Navigator.pop(context, jsonEncode(data));
+  }
+
+  void _returnError() {
+    if (_errorMessage == null) return;
+
+    final data = {'error': _errorMessage};
+    _allowPop = true;
     Navigator.pop(context, jsonEncode(data));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('GPS'),
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
+    return PopScope(
+      canPop: _allowPop,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        if (_errorMessage != null) {
+          _returnError();
+        } else {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('GPS'),
+          backgroundColor: const Color(0xFF4CAF50),
+          foregroundColor: Colors.white,
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 
@@ -154,6 +184,11 @@ class _GpsScreenState extends State<GpsScreen> {
                   foregroundColor: Colors.white,
                 ),
               ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: _returnError,
+                child: const Text('Back'),
+              ),
             ],
           ),
         ),
@@ -181,17 +216,37 @@ class _GpsScreenState extends State<GpsScreen> {
         ),
         Padding(
           padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _submitData,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
-                foregroundColor: Colors.white,
+          child: Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _getLocation,
+                    icon: const Icon(Icons.refresh),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                    ),
+                    label: const Text('Refresh', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
               ),
-              child: const Text('Submit', style: TextStyle(fontSize: 18)),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _submitData,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4CAF50),
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Submit', style: TextStyle(fontSize: 18)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

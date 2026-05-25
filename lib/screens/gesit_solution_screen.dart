@@ -14,6 +14,7 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
   bool _isLoading = true;
   String _currentUrl = '';
   String _currentPath = '';
+  String _currentQuery = '';
 
   @override
   void initState() {
@@ -37,18 +38,48 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
               _isLoading = false;
             });
           },
-          onUrlChange: (UrlChange url) {
+          onUrlChange: (UrlChange url) async {
             _currentUrl = url.url ?? '';
             final current = Uri.parse(_currentUrl);
             _currentPath = current.path;
+            _currentQuery = current.queryParameters['category'] ?? '';
             if (_currentPath.startsWith('/jobs/apply')) {
-              Navigator.pushNamed(context, '/camera_qr');
+              // Navigate to camera and wait for result
+              await Navigator.pushNamed(context, '/camera_qr');
+              
+              // When camera screen closes (either by capture or back button),
+              // go back one step in the WebView
+              if (mounted) {
+                await _controller.goBack();
+              }
+              return;
+            }
+            if (_currentPath.startsWith('/form') && _currentQuery == '2') {
+              await Navigator.pushNamed(context, '/map_destination');
+              if (mounted) {
+                await _controller.goBack();
+              }
+              return;
             }
           },
           onWebResourceError: (WebResourceError error) {
             debugPrint('WebView error: ${error.description}');
           },
         ),
+      )
+      ..addJavaScriptChannel(
+        'FlutterChannel',
+        onMessageReceived: (JavaScriptMessage message) async {
+          debugPrint('FlutterChannel message: ${message.message}');
+          if (message.message == 'requestGPS') {
+            final result = await Navigator.pushNamed(context, '/map_destination');
+            if (result != null && mounted) {
+              await _controller.runJavaScript(
+                "window.flutterGpsCallback && window.flutterGpsCallback($result)",
+              );
+            }
+          }
+        },
       )
       ..loadRequest(Uri.parse('https://app.gesitsolution.com'));
 
