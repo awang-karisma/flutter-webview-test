@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Singleton service that acts as a message hub between JavaScript (WebView) and Flutter.
@@ -33,17 +34,20 @@ class BridgeService {
     String? result;
 
     switch (action) {
+      case 'reload':
+        rootBundle.evict('assets/web/index.html');
+        await _controller?.clearCache();
+        await _controller?.loadFlutterAsset('assets/web/index.html');
+        break;
       case 'gps':
-        result = await _navigateAndWait('/gps');
-        break;
       case 'camera':
-        result = await _navigateAndWait('/camera');
-        break;
+      case 'camera_qr':
       case 'device_id':
-        result = await _navigateAndWait('/device_id');
-        break;
       case 'network_status':
-        result = await _navigateAndWait('/network_status');
+      case 'gesit_solution':
+      case 'chat':
+      case 'map_destination':
+        result = await _navigateAndWait('/$action');
         break;
       default:
         return jsonEncode({'error': 'Unknown action: $action'});

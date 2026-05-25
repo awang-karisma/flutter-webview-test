@@ -55,7 +55,11 @@ class _HomeScreenWebViewState extends State<HomeScreenWebView> {
           // Result is already sent back to WebView in handleMessage
           debugPrint('Result sent back to WebView');
         },
-      );
+      )
+      ..setOnConsoleMessage((JavaScriptConsoleMessage consoleMessage) {
+        debugPrint('JS console: ${consoleMessage.message}');
+        debugPrint('Message level: ${consoleMessage.level}');
+      });
 
     // Load the local HTML asset
     await _controller.loadFlutterAsset('assets/web/index.html');

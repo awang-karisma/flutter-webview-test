@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/chat_user.dart';
 
 /// Web fallback home screen with native Flutter buttons (for Web platform).
 /// This is used when running on Flutter Web where WebView is not available.
@@ -69,6 +70,42 @@ class HomeScreenWeb extends StatelessWidget {
                         label: 'Network',
                         color: const Color(0xFF9C27B0),
                         onTap: () => Navigator.pushNamed(context, '/network_status'),
+                      ),
+                      _buildButton(
+                        context,
+                        icon: Icons.chat,
+                        label: 'Chat',
+                        color: const Color(0xFF00BCD4),
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/chat',
+                          arguments: const ChatUser(
+                            id: 'support',
+                            name: 'Gesit Support',
+                            isOnline: true,
+                          ),
+                        ),
+                      ),
+                      _buildButton(
+                        context,
+                        icon: Icons.map,
+                        label: 'Map Destination',
+                        color: const Color(0xFFE91E63),
+                        onTap: () async {
+                          final result = await Navigator.pushNamed(context, '/map_destination');
+                          if (result != null && context.mounted) {
+                            final data = result as Map<String, dynamic>;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Destination: ${data['latitude']}, ${data['longitude']}\n'
+                                  'Using device location: ${data['useDeviceLocation']}',
+                                ),
+                                duration: const Duration(seconds: 3),
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),

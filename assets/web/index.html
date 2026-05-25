@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,33 +11,34 @@
             margin: 0;
             padding: 0;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 400px;
             margin: 0 auto;
+            padding-top: 4rem;
         }
-        
+
         h1 {
             color: white;
             text-align: center;
             margin-bottom: 30px;
             font-size: 24px;
         }
-        
+
         .button-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 30px;
         }
-        
+
         .btn {
             padding: 20px;
             border: none;
@@ -50,48 +52,53 @@
             align-items: center;
             gap: 8px;
         }
-        
+
         .btn:active {
             transform: scale(0.95);
         }
-        
+
         .btn-gps {
             background: #4CAF50;
             color: white;
         }
-        
+
         .btn-camera {
             background: #2196F3;
             color: white;
         }
-        
+
         .btn-device {
             background: #FF9800;
             color: white;
         }
-        
+
         .btn-network {
             background: #9C27B0;
             color: white;
         }
-        
+
+        .btn-gesit {
+            background: #E91E63;
+            color: white;
+        }
+
         .btn-icon {
             font-size: 24px;
         }
-        
+
         .status-area {
             background: white;
             border-radius: 12px;
             padding: 20px;
             min-height: 150px;
         }
-        
+
         .status-title {
             font-size: 14px;
             color: #666;
             margin-bottom: 10px;
         }
-        
+
         .status-content {
             font-family: monospace;
             font-size: 12px;
@@ -99,50 +106,72 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
-        
+
         .status-content.empty {
             color: #999;
             font-style: italic;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>WebView Bridge Demo</h1>
-        
+
         <div class="button-grid">
             <button class="btn btn-gps" onclick="callFlutter('gps')">
                 <span class="btn-icon">📍</span>
                 <span>GPS</span>
             </button>
-            <button class="btn btn-camera" onclick="callFlutter('camera')">
-                <span class="btn-icon">📷</span>
-                <span>Camera</span>
+            <button class="btn btn-gps" onclick="callFlutter('map_destination')">
+                <span class="btn-icon">🌍</span>
+                <span>Maps</span>
             </button>
             <button class="btn btn-device" onclick="callFlutter('device_id')">
                 <span class="btn-icon">📱</span>
                 <span>Device ID</span>
             </button>
+            <button class="btn btn-camera" onclick="callFlutter('camera')">
+                <span class="btn-icon">📷</span>
+                <span>Camera</span>
+            </button>
+            <button class="btn btn-camera" onclick="callFlutter('camera_qr')">
+                <span class="btn-icon">📷</span>
+                <span>Camera QR</span>
+            </button>
             <button class="btn btn-network" onclick="callFlutter('network_status')">
                 <span class="btn-icon">📶</span>
                 <span>Network</span>
             </button>
+            <button class="btn btn-gesit" onclick="callFlutter('gesit_solution')">
+                <span class="btn-icon">🌐</span>
+                <span>Gesit Solution</span>
+            </button>
+            <button class="btn btn-chat" onclick="callFlutter('chat')">
+                <span class="btn-icon">💬</span>
+                <span>Chat</span>
+            </button>
+            <button class="btn btn-gps" onclick="callFlutter('reload')">
+                <span class="btn-icon">🔃</span>
+                <span>Reload</span>
+            </button>
         </div>
-        
+
         <div class="status-area">
             <div class="status-title">Received Data:</div>
-            <div id="statusContent" class="status-content empty">No data received yet. Tap a button to get started.</div>
+            <div id="statusContent" class="status-content empty">No data received yet. Tap a button to get started.
+            </div>
         </div>
     </div>
-    
+
     <script>
         // Called by Flutter to send data back to this HTML page
         function receiveFromFlutter(jsonStr) {
             console.log('Received from Flutter:', jsonStr);
-            
+
             var statusContent = document.getElementById('statusContent');
             statusContent.classList.remove('empty');
-            
+
             try {
                 var data = JSON.parse(jsonStr);
                 statusContent.textContent = JSON.stringify(data, null, 2);
@@ -150,16 +179,16 @@
                 statusContent.textContent = jsonStr;
             }
         }
-        
+
         // Called when user clicks a button
         function callFlutter(action) {
             console.log('Calling Flutter with action:', action);
-            
+
             // Show loading state
             var statusContent = document.getElementById('statusContent');
             statusContent.classList.remove('empty');
             statusContent.textContent = 'Loading ' + action + '...';
-            
+
             // Send message to Flutter via the FlutterBridge JavaScriptChannel
             // webview_flutter exposes JavaScript channels as global functions
             if (typeof FlutterBridge !== 'undefined') {
@@ -172,4 +201,5 @@
         }
     </script>
 </body>
+
 </html>
