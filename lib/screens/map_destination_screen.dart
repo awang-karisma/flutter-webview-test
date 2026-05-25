@@ -18,7 +18,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
   LatLng _currentPosition = const LatLng(-6.2088, 106.8456); // Default: Jakarta
   bool _isLoadingLocation = false;
   bool _isLoadingAddress = false;
-  bool _useDeviceLocation = true;
   String _selectedAddress = 'Memuat alamat...';
   final Set<Marker> _markers = {};
   final TextEditingController _searchController = TextEditingController();
@@ -73,7 +72,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
         setState(() {
           _currentPosition = currentLatLng;
           _selectedDestination = currentLatLng;
-          _useDeviceLocation = true;
           _updateMarker(currentLatLng, isCurrentLocation: true);
         });
 
@@ -111,10 +109,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
     });
 
     try {
-      print(
-        'Fetching address for: ${position.latitude}, ${position.longitude}',
-      );
-
       final placemarks =
           await placemarkFromCoordinates(
             position.latitude,
@@ -122,17 +116,12 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
           ).timeout(
             const Duration(seconds: 15),
             onTimeout: () {
-              print('Geocoding timeout');
               throw Exception('Timeout');
             },
           );
 
-      print('Placemarks received: ${placemarks.length}');
-
       if (placemarks.isNotEmpty && mounted) {
         final place = placemarks.first;
-        print('Placemark: ${place.toString()}');
-
         final addressParts = <String>[];
 
         // Build address from most specific to least specific
@@ -170,13 +159,10 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
             ? addressParts.join(', ')
             : 'Koordinat: ${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
 
-        print('Final address: $address');
-
         setState(() {
           _selectedAddress = address;
         });
       } else {
-        print('No placemarks found');
         if (mounted) {
           setState(() {
             _selectedAddress =
@@ -185,7 +171,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
         }
       }
     } catch (e) {
-      print('Geocoding error: $e');
       if (mounted) {
         setState(() {
           _selectedAddress =
@@ -223,7 +208,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
   void _onMapTap(LatLng position) {
     setState(() {
       _selectedDestination = position;
-      _useDeviceLocation = false;
       _updateMarker(position, isCurrentLocation: false);
     });
     _getAddressFromLatLng(position);
@@ -254,8 +238,7 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
 
       final position =
           await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high,
-            timeLimit: const Duration(seconds: 10),
+            locationSettings: LocationSettings(accuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 10)),
           ).timeout(
             const Duration(seconds: 10),
             onTimeout: () {
@@ -270,7 +253,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
       setState(() {
         _currentPosition = currentLatLng;
         _selectedDestination = currentLatLng;
-        _useDeviceLocation = true;
         _updateMarker(currentLatLng, isCurrentLocation: true);
       });
 
@@ -317,7 +299,6 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
 
         setState(() {
           _selectedDestination = searchLatLng;
-          _useDeviceLocation = false;
           _updateMarker(searchLatLng, isCurrentLocation: false);
         });
 
@@ -443,7 +424,7 @@ class _MapDestinationScreenState extends State<MapDestinationScreen> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha(25),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),

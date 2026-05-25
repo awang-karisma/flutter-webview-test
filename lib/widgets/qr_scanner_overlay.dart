@@ -192,7 +192,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 
   void _drawCornerBrackets(Canvas canvas) {
     final bracketPaint = Paint()
-      ..color = bracketColor.withOpacity(bracketOpacity)
+      ..color = bracketColor.withValues(alpha: bracketOpacity)
       ..strokeWidth = bracketThickness
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -254,8 +254,8 @@ class _ScannerOverlayPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          scanLineColor.withOpacity(0.5),
-          scanLineColor.withOpacity(0.0),
+          scanLineColor.withAlpha(100),
+          scanLineColor.withAlpha(0),
         ],
       ).createShader(Rect.fromLTWH(
         viewfinderRect.left,

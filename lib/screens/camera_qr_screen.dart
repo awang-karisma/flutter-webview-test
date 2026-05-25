@@ -21,7 +21,6 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
   CameraController? _controller;
   List<CameraDescription>? _cameras;
   bool _isLoading = true;
-  bool _hasPermission = false;
   String? _errorMessage;
   bool _isCapturing = false;
 
@@ -50,19 +49,16 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
 
     if (status.isGranted) {
       setState(() {
-        _hasPermission = true;
       });
       await _initializeCamera();
     } else if (status.isPermanentlyDenied) {
       setState(() {
         _isLoading = false;
-        _hasPermission = false;
         _errorMessage = 'Camera permission permanently denied. Please enable in app settings.';
       });
     } else {
       setState(() {
         _isLoading = false;
-        _hasPermission = false;
         _errorMessage = 'Camera permission denied.';
       });
     }

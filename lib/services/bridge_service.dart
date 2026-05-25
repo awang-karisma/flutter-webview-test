@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:wv_user_agent/wv_user_agent.dart';
 
 /// Singleton service that acts as a message hub between JavaScript (WebView) and Flutter.
 ///
@@ -35,16 +33,6 @@ class BridgeService {
     String? result;
 
     switch (action) {
-      case 'reload':
-        rootBundle.evict('assets/web/index.html');
-        await _controller?.clearCache();
-        await _controller?.loadFlutterAsset('assets/web/index.html');
-        break;
-      case 'get_user_agent':
-        String userAgent = await WvUserAgent.userAgent;
-        final escapedResult = _escapeJsonForJs(userAgent);
-        await _controller!.runJavaScript('receiveFromFlutter($escapedResult)');
-        break;
       case 'gesit_solution':
         // Use pushReplacement to avoid having two WebViewControllers alive
         // simultaneously on the navigation stack. Each WebViewController registers
@@ -55,11 +43,7 @@ class BridgeService {
         // its Pigeon handlers) before GesitSolutionScreen registers its own.
         result = await _navigateAndReplace('/$action');
         break;
-      case 'gps':
-      case 'camera':
       case 'camera_qr':
-      case 'device_id':
-      case 'network_status':
       case 'chat':
       case 'map_destination':
         result = await _navigateAndWait('/$action');

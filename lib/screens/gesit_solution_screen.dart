@@ -43,19 +43,11 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
             final current = Uri.parse(_currentUrl);
             _currentPath = current.path;
             _currentQuery = current.queryParameters['category'] ?? '';
-            if (_currentPath.startsWith('/jobs/apply')) {
+            if (_currentPath.startsWith('/customer/form') && _currentQuery == '3') {
               // Navigate to camera and wait for result
               await Navigator.pushNamed(context, '/camera_qr');
-              
               // When camera screen closes (either by capture or back button),
               // go back one step in the WebView
-              if (mounted) {
-                await _controller.goBack();
-              }
-              return;
-            }
-            if (_currentPath.startsWith('/form') && _currentQuery == '2') {
-              await Navigator.pushNamed(context, '/map_destination');
               if (mounted) {
                 await _controller.goBack();
               }
@@ -88,15 +80,8 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
     }
   }
 
-  bool get _shouldShowAppBar {
-    final uri = Uri.parse(_currentUrl);
-    if (uri.path == '/') return false;
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final uri = Uri.parse(_currentUrl);
     return Scaffold(
       appBar: null,
       body: Padding(
@@ -108,8 +93,6 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
               const Center(
                 child: CircularProgressIndicator(color: Color(0xFF667eea)),
               ),
-
-            Text('$_currentUrl - $_currentPath'), 
           ],
         ),
       ),
