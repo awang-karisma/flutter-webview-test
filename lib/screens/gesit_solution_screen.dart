@@ -1,5 +1,13 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image/image.dart' as image;
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart' as webview_flutter_android;
+import 'package:path_provider/path_provider.dart';
+
+import 'camera_qr_screen.dart';
 
 /// Screen that opens https://app.gesitsolution.com in a WebView.
 class GesitSolutionScreen extends StatefulWidget {
@@ -20,6 +28,46 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
   void initState() {
     super.initState();
     _initWebView();
+  }
+
+  Future<List<String>> _androidFilePicker(webview_flutter_android.FileSelectorParams params) async {
+    if (params.acceptTypes.any((type) => type == 'image/*')) {
+      if (!mounted) return [];
+
+      final result = await Navigator.push<String>(
+        context,
+        MaterialPageRoute(builder: (context) => const CameraQRScreen()),
+      );
+
+      if (!mounted || result == null) {
+        return [];
+      }
+
+      final data = jsonDecode(result) as Map<String, dynamic>;
+      final imagePath = data['imagePath'] as String?;
+
+      if (imagePath == null || imagePath.isEmpty) {
+        return [];
+      }
+
+      final imageData = await File(imagePath).readAsBytes();
+      final decodedImage = image.decodeImage(imageData);
+      if (decodedImage == null) {
+        return [];
+      }
+      final scaledImage = image.copyResize(decodedImage, width: 500);
+      final jpg = image.encodeJpg(scaledImage, quality: 90);
+
+      final filePath = (await getTemporaryDirectory()).uri.resolve(
+            './image_${DateTime.now().microsecondsSinceEpoch}.jpg',
+          );
+      final file = await File.fromUri(filePath).create(recursive: true);
+      await file.writeAsBytes(jpg, flush: true);
+
+      return [file.uri.toString()];
+    }
+
+    return [];
   }
 
   Future<void> _initWebView() async {
@@ -75,6 +123,10 @@ class _GesitSolutionScreenState extends State<GesitSolutionScreen> {
       )
       ..loadRequest(Uri.parse('https://app.gesitsolution.com'));
 
+    if (Platform.isAndroid) {
+      final controller = (_controller.platform as webview_flutter_android.AndroidWebViewController);
+      controller.setOnShowFileSelector(_androidFilePicker);
+    }
     if (mounted) {
       setState(() {});
     }

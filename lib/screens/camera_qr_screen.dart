@@ -9,7 +9,8 @@ import '../widgets/qr_scanner_overlay.dart';
 
 /// Camera screen with QR-style scanning animation overlay.
 /// Shows a viewfinder with animated scanning line and corner brackets.
-/// When capture is clicked, image data is returned to the caller.
+/// When capture is clicked, a preview overlay appears for user confirmation
+/// before returning image data to the caller.
 class CameraQRScreen extends StatefulWidget {
   const CameraQRScreen({super.key});
 
@@ -23,6 +24,11 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _isCapturing = false;
+
+  // Preview overlay state
+  String? _capturedImagePath;
+  String? _capturedBase64;
+  int? _capturedFileSize;
 
   @override
   void initState() {
@@ -104,7 +110,7 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
     }
   }
 
-  Future<void> _captureAndReturn() async {
+  Future<void> _captureAndPreview() async {
     if (_controller == null || !_controller!.value.isInitialized || _isCapturing) {
       return;
     }
@@ -137,18 +143,13 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
       // Copy the image to temp directory
       await file.copy(savedPath);
 
-      // Build comprehensive data response
-      final data = {
-        'imagePath': savedPath,
-        'imageBase64': 'data:image/jpeg;base64,$base64Image',
-        'timestamp': DateTime.now().toIso8601String(),
-        'fileSize': fileSize,
-        'success': true,
-      };
-
-      if (mounted) {
-        Navigator.pop(context, jsonEncode(data));
-      }
+      if (!mounted) return;
+      setState(() {
+        _capturedImagePath = savedPath;
+        _capturedBase64 = base64Image;
+        _capturedFileSize = fileSize;
+        _isCapturing = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -162,6 +163,31 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
         );
       }
     }
+  }
+
+  void _acceptPhoto() {
+    if (_capturedImagePath == null || _capturedBase64 == null) return;
+
+    final data = {
+      'imagePath': _capturedImagePath,
+      'imageBase64': 'data:image/jpeg;base64,$_capturedBase64',
+      'timestamp': DateTime.now().toIso8601String(),
+      'fileSize': _capturedFileSize,
+      'success': true,
+    };
+
+    if (mounted) {
+      Navigator.pop(context, jsonEncode(data));
+    }
+  }
+
+  void _retakePhoto() {
+    if (!mounted) return;
+    setState(() {
+      _capturedImagePath = null;
+      _capturedBase64 = null;
+      _capturedFileSize = null;
+    });
   }
 
   @override
@@ -242,6 +268,11 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
       );
     }
 
+    // Show preview overlay if a photo has been captured
+    if (_capturedImagePath != null) {
+      return _buildPreviewOverlay();
+    }
+
     // Main camera view with QR scanner overlay
     return Stack(
       children: [
@@ -308,9 +339,142 @@ class _CameraQRScreenState extends State<CameraQRScreen> {
     );
   }
 
+  Widget _buildPreviewOverlay() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Captured image preview
+        Image.file(
+          File(_capturedImagePath!),
+          fit: BoxFit.contain,
+        ),
+
+        // Dark gradient at bottom for button visibility
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.7),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Top bar with retake hint
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 16,
+          left: 0,
+          right: 0,
+          child: const Center(
+            child: Text(
+              'Review your photo',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                shadows: [
+                  Shadow(
+                    color: Colors.black54,
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Action buttons at bottom
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 40,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Retake button
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.refresh,
+                    label: 'Retake',
+                    isPrimary: false,
+                    onTap: _retakePhoto,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                // Accept button
+                Expanded(
+                  child: _buildActionButton(
+                    icon: Icons.check,
+                    label: 'Use Photo',
+                    isPrimary: true,
+                    onTap: _acceptPhoto,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required bool isPrimary,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        decoration: BoxDecoration(
+          color: isPrimary ? const Color(0xFF00E5FF) : Colors.transparent,
+          borderRadius: BorderRadius.circular(28),
+          border: isPrimary
+              ? null
+              : Border.all(
+                  color: Colors.white,
+                  width: 2,
+                ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isPrimary ? Colors.black : Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isPrimary ? Colors.black : Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCaptureButton() {
     return GestureDetector(
-      onTap: _isCapturing ? null : _captureAndReturn,
+      onTap: _isCapturing ? null : _captureAndPreview,
       child: Container(
         width: 72,
         height: 72,
